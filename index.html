@@ -22,7 +22,8 @@
   <script>
     // Put your broker WebSocket URL here (from your MQTT provider):
     // Example format: wss://YOUR_BROKER_HOST:8084/mqtt
-    const WS_URL = "wss://https://1337hypex.github.io/esp32/:8084/mqtt";
+    const WS_URL = "wss://broker.emqx.io:8084/mqtt";
+
 
     const options = {
       clientId: "web_" + Math.random().toString(16).slice(2),
@@ -32,7 +33,8 @@
       reconnectPeriod: 1000
     };
 
-    const TOPIC = "hypex/rgb/set";
+   const TOPIC = "hypex/rgb/9f3a2c/set";
+
     const statusEl = document.getElementById("status");
 
     const client = mqtt.connect(WS_URL, options);
@@ -48,5 +50,6 @@
   </script>
 </body>
 </html>
+
 
 
