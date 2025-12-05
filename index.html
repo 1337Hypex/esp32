@@ -4,49 +4,68 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ESP32 RGB</title>
   <style>
-    body{font-family:Arial;margin:20px}
-    button{padding:16px 18px;margin:8px;font-size:18px}
-    #status{margin-top:12px}
+    body { font-family: Arial; margin: 20px; }
+    button { padding: 16px 18px; margin: 8px; font-size: 18px; }
+    #status { margin-top: 12px; font-size: 16px; }
+    #log { margin-top: 12px; padding: 10px; border: 1px solid #444; min-height: 70px; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h2>ESP32 RGB Control</h2>
-  <button onclick="send('red')">Red</button>
-  <button onclick="send('green')">Green</button>
-  <button onclick="send('blue')">Blue</button>
-  <button onclick="send('white')">White</button>
-  <button onclick="send('off')">Off</button>
-  <div id="status">Status: disconnected</div>
+
+  <button onclick="sendColor('red')">Red</button>
+  <button onclick="sendColor('green')">Green</button>
+  <button onclick="sendColor('blue')">Blue</button>
+  <button onclick="sendColor('white')">White</button>
+  <button onclick="sendColor('off')">Off</button>
+
+  <div id="status">Status: loading...</div>
+  <div id="log"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.14.1/mqtt.min.js"></script>
   <script>
-    // Put your broker WebSocket URL here (from your MQTT provider):
-    // Example format: wss://YOUR_BROKER_HOST:8084/mqtt
     const WS_URL = "wss://broker.emqx.io:8084/mqtt";
-
-
-    const options = {
-      clientId: "web_" + Math.random().toString(16).slice(2),
-      username: "", // or ""
-      password: "", // or ""
-      clean: true,
-      reconnectPeriod: 1000
-    };
-
-   const TOPIC = "hypex/rgb/9f3a2c/set";
+    const TOPIC  = "hypex/rgb/9f3a2c/set"; // MUST match ESP32
 
     const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
 
-    const client = mqtt.connect(WS_URL, options);
-
-    client.on("connect", () => statusEl.textContent = "Status: connected");
-    client.on("reconnect", () => statusEl.textContent = "Status: reconnecting...");
-    client.on("error", (e) => statusEl.textContent = "Status: error (" + e.message + ")");
-
-    function send(color){
-      client.publish(TOPIC, color);
-      statusEl.textContent = "Status: sent " + color;
+    function log(msg) {
+      logEl.textContent = (new Date().toLocaleTimeString()) + "  " + msg + "\n" + logEl.textContent;
+      console.log(msg);
     }
+
+    const client = mqtt.connect(WS_URL, {
+      clientId: "web_" + Math.random().toString(16).slice(2),
+      clean: true,
+      reconnectPeriod: 1000
+    });
+
+    client.on("connect", () => {
+      statusEl.textContent = "Status: connected";
+      log("Connected to broker");
+    });
+
+    client.on("reconnect", () => {
+      statusEl.textContent = "Status: reconnecting...";
+      log("Reconnecting...");
+    });
+
+    client.on("error", (e) => {
+      statusEl.textContent = "Status: error (" + e.message + ")";
+      log("Error: " + e.message);
+    });
+
+    // Global function for button clicks
+    window.sendColor = (color) => {
+      if (!client.connected) {
+        log("NOT SENT (not connected yet): " + color);
+        return;
+      }
+      client.publish(TOPIC, color, { qos: 0, retain: false });
+      log("Published: " + color + " -> " + TOPIC);
+      statusEl.textContent = "Status: sent " + color;
+    };
   </script>
 </body>
 </html>
