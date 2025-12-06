@@ -3,25 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ESP32 RGB + LCD</title>
+  <title>ESP32 Control Panel</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="top">
-      <div>
+  <div class="app">
+    <div class="card">
+      <header class="card-header">
         <h1>ESP32 Control Panel</h1>
-        <p class="sub">RGB + I2C 1602 LCD via MQTT</p>
-      </div>
-      <div class="badge" id="badge">Loading…</div>
-    </header>
+        <p class="sub">RGB LED + LCD “chat” over MQTT</p>
+        <div class="badge" id="badge">Connecting…</div>
+      </header>
 
-    <main class="grid">
-      <section class="card">
-        <h2>RGB</h2>
-        <p class="hint">Click a color to send a command to the ESP32.</p>
-
-        <div class="btns">
+      <section class="block">
+        <h2>RGB Controls</h2>
+        <p class="hint">Choose a color to send to the ESP32.</p>
+        <div class="btn-row">
           <button class="btn b-red"   onclick="sendRGB('red')">Red</button>
           <button class="btn b-green" onclick="sendRGB('green')">Green</button>
           <button class="btn b-blue"  onclick="sendRGB('blue')">Blue</button>
@@ -30,35 +27,41 @@
         </div>
       </section>
 
-      <section class="card">
-        <h2>LCD Message</h2>
-        <p class="hint">Sends up to ~32 characters (16 per line on 1602).</p>
+      <section class="block">
+        <h2>LCD Chat</h2>
+        <p class="hint">Type a short message (up to ~32 characters). It will be shown on the ESP32 LCD.</p>
 
-        <div class="row">
+        <div class="chat">
+          <div class="chat-bubble chat-remote" id="lcdPreview">
+            Waiting for your first message…
+          </div>
+        </div>
+
+        <div class="chat-input-row">
           <input id="txt" maxlength="64" placeholder="Type a message for the LCD…" />
           <button class="btn b-send" onclick="sendLCD()">Send</button>
         </div>
-
-        <div class="status" id="status">Status: loading…</div>
       </section>
-    </main>
 
-    <footer class="foot">
-      Broker: <span class="mono">broker.emqx.io</span> • Topics:
-      <span class="mono">hypex/rgb/9f3a2c/set</span> and
-      <span class="mono">hypex/lcd/9f3a2c/msg</span>
-    </footer>
+      <div class="status" id="status">Status: connecting…</div>
+
+      <footer class="card-footer">
+        <span class="mono">broker.emqx.io</span> · 
+        <span class="mono">hypex/rgb/9f3a2c/set</span> · 
+        <span class="mono">hypex/lcd/9f3a2c/msg</span>
+      </footer>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.14.1/mqtt.min.js"></script>
   <script>
-    const WS_URL = "wss://broker.emqx.io:8084/mqtt";
-
+    const WS_URL   = "wss://broker.emqx.io:8084/mqtt";
     const TOPIC_RGB = "hypex/rgb/9f3a2c/set";
     const TOPIC_LCD = "hypex/lcd/9f3a2c/msg";
 
     const statusEl = document.getElementById("status");
     const badgeEl  = document.getElementById("badge");
+    const lcdPreviewEl = document.getElementById("lcdPreview");
 
     const client = mqtt.connect(WS_URL, {
       clientId: "web_" + Math.random().toString(16).slice(2),
@@ -86,6 +89,9 @@
       setBadge("Error");
     });
 
+    // (Optional) subscribe so the page can also see LCD messages if you want later
+    // client.subscribe(TOPIC_LCD);
+
     function ensureConnected() {
       if (!client.connected) {
         statusEl.textContent = "Status: not connected";
@@ -105,6 +111,7 @@
       if (!ensureConnected()) return;
       const text = document.getElementById("txt").value || "";
       client.publish(TOPIC_LCD, text);
+      lcdPreviewEl.textContent = text || "Empty message";
       statusEl.textContent = "Status: sent LCD message";
     };
   </script>
