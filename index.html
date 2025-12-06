@@ -6,8 +6,8 @@
   <style>
     body{font-family:Arial;margin:20px}
     button{padding:16px 18px;margin:8px;font-size:18px}
-    input{padding:14px;font-size:16px;width:340px;max-width:90%}
-    #status{margin-top:12px}
+    input{padding:14px;font-size:16px;width:360px;max-width:95%}
+    #status{margin-top:12px;font-size:16px}
   </style>
 </head>
 <body>
@@ -35,7 +35,6 @@
     const TOPIC_LCD = "hypex/lcd/9f3a2c/msg";
 
     const statusEl = document.getElementById("status");
-
     const client = mqtt.connect(WS_URL, {
       clientId: "web_" + Math.random().toString(16).slice(2),
       clean: true,
@@ -47,10 +46,7 @@
     client.on("error", (e) => statusEl.textContent = "Status: error (" + e.message + ")");
 
     function ensureConnected() {
-      if (!client.connected) {
-        statusEl.textContent = "Status: not connected";
-        return false;
-      }
+      if (!client.connected) { statusEl.textContent = "Status: not connected"; return false; }
       return true;
     }
 
@@ -62,8 +58,8 @@
 
     window.sendLCD = () => {
       if (!ensureConnected()) return;
-      const v = document.getElementById("txt").value || "";
-      client.publish(TOPIC_LCD, v);
+      const text = document.getElementById("txt").value || "";
+      client.publish(TOPIC_LCD, text);
       statusEl.textContent = "Status: sent LCD";
     };
   </script>
