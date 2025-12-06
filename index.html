@@ -2,38 +2,39 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ESP32 RGB</title>
+  <title>ESP32 RGB + LCD</title>
   <style>
-    body { font-family: Arial; margin: 20px; }
-    button { padding: 16px 18px; margin: 8px; font-size: 18px; }
-    #status { margin-top: 12px; font-size: 16px; }
-    #log { margin-top: 12px; padding: 10px; border: 1px solid #444; min-height: 70px; white-space: pre-wrap; }
+    body{font-family:Arial;margin:20px}
+    button{padding:16px 18px;margin:8px;font-size:18px}
+    input{padding:14px;font-size:16px;width:340px;max-width:90%}
+    #status{margin-top:12px}
   </style>
 </head>
 <body>
-  <h2>ESP32 RGB Control</h2>
+  <h2>ESP32 Control</h2>
 
-  <button onclick="sendColor('red')">Red</button>
-  <button onclick="sendColor('green')">Green</button>
-  <button onclick="sendColor('blue')">Blue</button>
-  <button onclick="sendColor('white')">White</button>
-  <button onclick="sendColor('off')">Off</button>
+  <div>
+    <button onclick="sendRGB('red')">Red</button>
+    <button onclick="sendRGB('green')">Green</button>
+    <button onclick="sendRGB('blue')">Blue</button>
+    <button onclick="sendRGB('white')">White</button>
+    <button onclick="sendRGB('off')">Off</button>
+  </div>
+
+  <h3>LCD message</h3>
+  <input id="txt" placeholder="Type message (max ~32 chars)" />
+  <button onclick="sendLCD()">Send</button>
 
   <div id="status">Status: loading...</div>
-  <div id="log"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.14.1/mqtt.min.js"></script>
   <script>
     const WS_URL = "wss://broker.emqx.io:8084/mqtt";
-    const TOPIC  = "hypex/rgb/9f3a2c/set"; // MUST match ESP32
+
+    const TOPIC_RGB = "hypex/rgb/9f3a2c/set";
+    const TOPIC_LCD = "hypex/lcd/9f3a2c/msg";
 
     const statusEl = document.getElementById("status");
-    const logEl = document.getElementById("log");
-
-    function log(msg) {
-      logEl.textContent = (new Date().toLocaleTimeString()) + "  " + msg + "\n" + logEl.textContent;
-      console.log(msg);
-    }
 
     const client = mqtt.connect(WS_URL, {
       clientId: "web_" + Math.random().toString(16).slice(2),
@@ -41,34 +42,32 @@
       reconnectPeriod: 1000
     });
 
-    client.on("connect", () => {
-      statusEl.textContent = "Status: connected";
-      log("Connected to broker");
-    });
+    client.on("connect", () => statusEl.textContent = "Status: connected");
+    client.on("reconnect", () => statusEl.textContent = "Status: reconnecting...");
+    client.on("error", (e) => statusEl.textContent = "Status: error (" + e.message + ")");
 
-    client.on("reconnect", () => {
-      statusEl.textContent = "Status: reconnecting...";
-      log("Reconnecting...");
-    });
-
-    client.on("error", (e) => {
-      statusEl.textContent = "Status: error (" + e.message + ")";
-      log("Error: " + e.message);
-    });
-
-    // Global function for button clicks
-    window.sendColor = (color) => {
+    function ensureConnected() {
       if (!client.connected) {
-        log("NOT SENT (not connected yet): " + color);
-        return;
+        statusEl.textContent = "Status: not connected";
+        return false;
       }
-      client.publish(TOPIC, color, { qos: 0, retain: false });
-      log("Published: " + color + " -> " + TOPIC);
-      statusEl.textContent = "Status: sent " + color;
+      return true;
+    }
+
+    window.sendRGB = (color) => {
+      if (!ensureConnected()) return;
+      client.publish(TOPIC_RGB, color);
+      statusEl.textContent = "Status: sent RGB " + color;
+    };
+
+    window.sendLCD = () => {
+      if (!ensureConnected()) return;
+      const v = document.getElementById("txt").value || "";
+      client.publish(TOPIC_LCD, v);
+      statusEl.textContent = "Status: sent LCD";
     };
   </script>
 </body>
 </html>
-
 
 
